@@ -21,17 +21,29 @@ class Lane:
         self.cars = [Car(p, v) for (p, v) in zip(start_posns, start_vels)]
 
     def get_posns(self):
+        '''
+        Returns a list of positions for all the cars in the lane.
+        '''
         return [c.posn for c in self.cars]
 
     def get_vels(self):
+        '''
+        Returns a list of velocities for all the cars in the lane.
+        '''
         return [c.vel for c in self.cars]
 
     def update(self):
+        '''
+        Updates the positions of all the cars in the lane. No lane changes allowed.
+        '''
         curr_posns = self.get_posns()
         for i, c in enumerate(self.cars):
             c.update(curr_posns[(i + 1) % self.num_cars], self.length)
 
     def update_wLC(self, adjs):
+        '''
+        Updates the positions of all the cars in the lane, allowing lane changes.
+        '''
         curr_posns = self.get_posns()
         toPop = []
         for i, c in enumerate(self.cars):
@@ -43,11 +55,16 @@ class Lane:
             self.num_cars -= 1
 
     def add_car(self, car):
+        '''
+        Adds a car to the lane.
+        '''
         self.cars.append(car)
         self.cars = sorted(self.cars, key=lambda x:x.posn)
 
     def crash_car(self):
-        # choose a random car in the lane to crash
+        '''
+        Selects a random car in the lane to "crash".
+        '''
         ind = random.randint(0, self.num_cars - 1)
         self.cars[ind].crash_timer = 30
         print("Crashing car at position " + str(self.cars[ind].posn))
@@ -62,6 +79,9 @@ class Car:
         self.crash_timer = 0
 
     def update(self, p_ahead, road_len):
+        '''
+        Update rule for the car, without lane changes.
+        '''
         if self.crash_timer:
             self.vel = 0
             self.crash_timer -= 1
@@ -78,6 +98,9 @@ class Car:
         self.posn = (self.posn + self.vel) % road_len
 
     def update_wLC(self, p_ahead, road_len, adjs):
+        '''
+        Update rule for the car, with lane changes.
+        '''
         if self.crash_timer:
             self.vel = 0
             self.crash_timer -= 1
@@ -94,7 +117,6 @@ class Car:
             (r_behind, r_ahead) = ahead_behind(self, adjs[1], road_len)
             if (r_behind.posn + r_behind.vel + 1) % road_len < self.posn:
                 rSpace = (r_ahead.posn - self.posn) % road_len
-        toMove = 0
         if mSpace == max([rSpace, lSpace, mSpace]):
             self.update(p_ahead, road_len)
             return False
@@ -108,6 +130,9 @@ class Car:
             return True
 
 def ahead_behind(myCar, myLane, road_len):
+    '''
+    Get the cars that are ahead and behind of myCar in the adjacent lane (myLane).
+    '''
     p = myCar.posn
     behindCar = None
     minBehind = road_len
@@ -146,6 +171,10 @@ class Road:
         self.lanes = [Lane(length, cars_per_lane) for _ in range(num_lanes)]
 
     def update(self):
+        '''
+        Update the lanes on the road, with some finite probability of a crash
+        being introduced on a non-empty lane. No lane changing.
+        '''
         for l in self.lanes:
             l.update()
             # randomly add car crash with low probability
@@ -156,6 +185,10 @@ class Road:
                 print("Adding a crash in lane " + str(ind))
 
     def update_wLC(self):
+        '''
+        Update the lanes on the road, with some finite probability of a crash
+        being introduced on a non-empty lane. Lane changing permitted.
+        '''
         for i, l in enumerate(self.lanes):
             adjs = [None, None]
             if i != 0:
@@ -171,6 +204,10 @@ class Road:
                     print("Adding a car crash in lane " + str(ind))
 
     def vel_vec(self):
+        '''
+        Get a vector of the velocities of all cars in all lanes for visualization
+        purposes.
+        '''
         vals = np.zeros((self.num_lanes, self.length)) - 1
         for i, l in enumerate(self.lanes):
             pVals = l.get_posns()
